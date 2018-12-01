@@ -38,7 +38,6 @@ case object Ehmc extends Sampler {
     def samplePhi: Array[Double] =
       Array.fill(nVars)(rng.standardNormal)
 
-    // TODO: This function doesn't appear to work...
     def longestBatch(
       theta: Array[Double],
       phi: Array[Double],
