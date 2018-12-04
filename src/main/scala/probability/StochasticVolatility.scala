@@ -18,8 +18,7 @@ object SV extends App {
     collect {
       case Right(a) => (a._1, a._2)
     }.
-    toVector.
-    take(500)
+    toVector
 
   val prior = for {
     phi1 <- Beta(5.0, 2.0).param
@@ -57,18 +56,18 @@ object SV extends App {
   val thin = 20
 
   // val metropolis = model.sample(Metropolis, 5000, 10000 * thin, thin)
-  // val hmc = model.sample(HMC(5), 5000, 10000 * thin, thin)
+  val hmc = model.sample(HMC(5), 5000, 10000 * thin, thin)
   // val nuts = model.sample(Nuts(10), 5000, 10000 * thin, thin)
   val ehmc = model.sample(Ehmc, 5000, 10000 * thin, thin)
 
   val headers = rfc.withHeader("phi", "mu", "sigma")
   // val outmh = new java.io.File("data/metropolis_sv.csv")
-  // val outhmc = new java.io.File("data/hmc_sv.csv")
+  val outhmc = new java.io.File("data/hmc_sv.csv")
   // val outnuts = new java.io.File("data/nuts_sv.csv")
   val outehmc = new java.io.File("data/ehmc_sv.csv")
 
   // outmh.writeCsv(metropolis.map(_.values), headers)
-  // outhmc.writeCsv(hmc.map(_.values), headers)
+  outhmc.writeCsv(hmc.map(_.values), headers)
   // outnuts.writeCsv(nuts.map(_.values), headers)
   outehmc.writeCsv(ehmc.map(_.values), headers)
 }

@@ -58,7 +58,8 @@ object PoissonPomp extends App {
     phi <- Beta(2.0, 8.0).param
     mu <- Normal(0.0, 2.0).param
     sigma <- LogNormal(2.0, 2.0).param
-    x0 <- Normal(mu, sigma * sigma / (1 - phi * phi)).param
+    variance = sigma * sigma / (1 - phi * phi)
+    x0 <- Normal(mu, variance.pow(0.5)).param
     t0 = 0.0
   } yield (t0, phi, mu, sigma, x0)
 
@@ -80,7 +81,8 @@ object PoissonPomp extends App {
     } yield (t + dt, phi, mu, sigma, x1)
   }
 
-  val fullModel = prior flatMap (p => ys.foldM(p)(step))
+  val fullModel: RandomVariable[(Double, Real, Real, Real, Real)] =
+    prior flatMap (p => ys.foldM(p)(step))
 
   val model = for {
     ps <- fullModel
@@ -89,9 +91,9 @@ object PoissonPomp extends App {
 
   val thin = 20
 
-  val iters = model.sample(Ehmc, 10000, 10000 * thin, thin)
+  val iters = model.sample(HMC(5), 10000, 10000 * thin, thin)
 
-  val out = new java.io.File("data/ehmc_poisson.csv")
+  val out = new java.io.File("data/hmc_poisson.csv")
   val headers = rfc.withHeader("phi", "mu", "sigma")
 
   out.writeCsv(iters.map(_.values), headers)

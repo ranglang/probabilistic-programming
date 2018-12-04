@@ -8,6 +8,8 @@ import cats.implicits._
 import scala.collection.mutable.ListBuffer
 import math._
 import scala.annotation.tailrec
+import breeze.stats.distributions._
+import breeze.linalg.{DenseMatrix, DenseVector}
 
 case object Ehmc extends Sampler {
   def sample(density: DensityFunction,
@@ -171,5 +173,79 @@ case object Ehmc extends Sampler {
       i += 1
     }
     buf.toList
+  }
+}
+
+object EhmcBreeze {
+  def longestBatch(
+    theta: Array[Double],
+    phi: Array[Double],
+    eps: Double,
+    gradient: Array[Double] => Array[Double],
+    L: Int) = {
+
+    def loop(thetaOut: Array[Double], phiOut: Array[Double],
+             t: Array[Double], p: Array[Double], l: Int
+    ): (Array[Double], Array[Double], Int) = {
+      if (Nuts.dot(Nuts.minus(t, theta), p) >= 0) {
+        val (t1, p1) = Hmc.leapfrogs(eps, gradient, l, t, p)
+        if (l == L)
+          loop(t1, p1, t1, p1, l + 1)
+        else
+          loop(thetaOut, phiOut, t1, p1, l + 1)
+      } else {
+        (thetaOut, phiOut, l)
+      }
+    }
+
+    loop(theta, phi, theta, phi, 1)
+  }
+
+  def samplePhi(m: DenseMatrix[Double]) = {
+    val zero = DenseVector.zeros[Double](m.cols)
+    MultivariateGaussian(zero, m).map(_.data)
+  }
+
+  def longestBatchStep(
+    eps: Double,
+    l0: Int,
+    m: DenseMatrix[Double],
+    gradient: Array[Double] => Array[Double],
+    pos: Array[Double] => Double
+  )(thetal: (Array[Double], Int)): Rand[(Array[Double], Int)] = {
+
+    for {
+      phi <- samplePhi(m)
+      theta = thetal._1
+      (t, p, l) = longestBatch(theta, phi, eps, gradient, l0)
+                              (propTheta, propPhi) = if (l < l0) {
+        Hmc.leapfrogs(eps, gradient, l0 - l, t, p)
+      } else {
+        (t, p)
+      }
+      u <- breeze.stats.distributions.Uniform(0, 1)
+      a = Hmc.logAcceptance(propTheta, propPhi, theta, phi, pos)
+      next = if (log(u) < a) {
+        (propTheta, l)
+      } else {
+        (theta, l)
+      }
+    } yield next
+    }
+
+  def discreteUniform(min: Int, max: Int)(implicit rng: RNG) = new Rand[Int] {
+    def draw = math.floor(rng.standardUniform * (max - min) + min).toInt
+  }
+
+  def empiricalLongestBatch(
+    eps: Double,
+    l0: Int,
+    m: DenseMatrix[Double],
+    gradient: Array[Double] => Array[Double],
+    pos: Array[Double] => Double,
+    k: Int = 200)(theta: Array[Double]): Vector[Int] = {
+
+    MarkovChain((theta, l0))(longestBatchStep(eps, l0, m, gradient, pos)).
+      steps.take(k).toVector.map(_._2)
   }
 }
