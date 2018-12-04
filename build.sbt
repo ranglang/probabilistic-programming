@@ -20,7 +20,7 @@ libraryDependencies  ++= Seq(
   "org.scalanlp" %% "breeze-viz" % "0.13.2",
   "com.github.fommil.netlib" % "all" % "1.1.2",
   "com.nrinaudo" %% "kantan.csv-cats" % "0.4.0",
-  "com.stripe" %% "rainier-core" % "0.2.0",
+  "com.stripe" %% "rainier-cats" % "0.2.0",
   "org.typelevel" %% "cats-core" % "1.4.0",
   "org.typelevel" %% "cats-free" % "0.9.0",
   "org.scalacheck" %% "scalacheck" % "1.14.0" % "test"

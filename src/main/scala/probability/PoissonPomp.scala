@@ -89,9 +89,9 @@ object PoissonPomp extends App {
 
   val thin = 20
 
-  val iters = model.sample(Ehmc, 10000, 1000 * thin, thin)
+  val iters = model.sample(Ehmc, 10000, 10000 * thin, thin)
 
-  val out = new java.io.File("hmc_poisson.csv")
+  val out = new java.io.File("data/ehmc_poisson.csv")
   val headers = rfc.withHeader("phi", "mu", "sigma")
 
   out.writeCsv(iters.map(_.values), headers)

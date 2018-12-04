@@ -21,3 +21,6 @@ project/plugins/project/
 
 # Pre-processed documentation file
 rst_preprocessed
+
+# data directory
+data/*
