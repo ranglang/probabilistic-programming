@@ -35,8 +35,6 @@ case object Metropolis extends Sampler {
       val ps = prop(p)
       val a = pos(ps) - pos(p)
       val u = rng.standardNormal
-      println(s"log-acceptance $a")
-      println(s"log(u) = ${math.log(u)}")
 
       if (log(u) < a) ps else p
     }
@@ -47,7 +45,6 @@ case object Metropolis extends Sampler {
     while (i < iterations) {
       current = step(current)
       if (i % keepEvery == 0)
-        current = step(current)
         buf += current
       i += 1
     }

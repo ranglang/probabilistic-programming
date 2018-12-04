@@ -297,16 +297,8 @@ case class Nuts(maxTreeDepth: Int) extends Sampler {
         updateEps(s.iter, mu, min(1.0, exp(st.acceptProb)),
                   st.nAccept)(s.hm, s.logeps, s.logepsbar)
       } else {
-        if (s.iter == warmupIterations - 1) {
-          println("End of Tuning phase")
-          println(s"eps: ${exp(s.logeps)}")
-        }
-
         (s.hm, s.logepsbar, s.logepsbar)
       }
-      if (s.iter % 1000 == 0)
-        println(s"${s.iter} / $iterations")
-
       DualAverageState(s.iter + 1, st.theta1, logeps1, logepsbar1, hm1)
     }
 
@@ -320,9 +312,6 @@ case class Nuts(maxTreeDepth: Int) extends Sampler {
     var i = 0
     var current = initState
     while (i < iterations) {
-      if (i == iterations - 1)
-        println(s"Accepted $accepted")
-
       current = step(mu)(current)
 
       if (i % keepEvery == 0) {

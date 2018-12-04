@@ -7,6 +7,7 @@ import cats._
 import cats.implicits._
 import scala.collection.mutable.ListBuffer
 import math._
+import scala.annotation.tailrec
 
 case object Ehmc extends Sampler {
   def sample(density: DensityFunction,
@@ -106,8 +107,8 @@ case object Ehmc extends Sampler {
 
       // use current step size
       val eps = exp(s.logeps)
-      if (s.iter == warmupIterations)
-        println(s"Step size at end of warmup is $eps")
+      // if (s.iter == warmupIterations)
+      //   println(s"Step size at end of warmup is $eps")
 
       // draw the number of leapfrog steps from the empirical dist
       val k = empiricalL.size
@@ -145,19 +146,19 @@ case object Ehmc extends Sampler {
     val initTheta = initialiseTheta
     val eps0 = Nuts.findReasonableEpsilon(initTheta, samplePhi, pos, gradient, pos)
     var current = DualAverageState(1, initTheta, 0, log(eps0), 0.0, 0.0)
-    println(s"Initial step size $eps0")
+    // println(s"Initial step size $eps0")
     val l0 = 100
     var empiricalL = Vector(l0)
     val buf = new ListBuffer[Array[Double]]
 
     while (i < iterations) {
-      if (i % 1000 == 0)
-        println(s"Iteration $i")
+      // if (i % 1000 == 0)
+      //   println(s"Iteration $i")
 
       // once step size tuning has completed, compute
       // empirical distribution
       if (i == warmupIterations) {
-        println("Determining empirical distribution")
+        // println("Determining empirical distribution")
         empiricalL = empiricalLongestBatch(exp(current.logeps), l0)(current.theta)
       }
 

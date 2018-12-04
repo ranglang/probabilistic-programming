@@ -3,9 +3,6 @@ package probability
 import breeze.stats.distributions._
 import math._
 
-/**
-  * TODO: How to handle proposals of NaN
-  */
 case class DualAverageState(
   iter:      Int,
   theta:     Array[Double],

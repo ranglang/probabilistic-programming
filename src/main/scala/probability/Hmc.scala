@@ -158,5 +158,4 @@ object Hmc {
     val a = logDensity(propTheta, propPhi, pos) - logDensity(theta, phi, pos)
     if (a.isNaN) { Math.log(0.0) } else { a.min(0.0) }
   }
-    
 }

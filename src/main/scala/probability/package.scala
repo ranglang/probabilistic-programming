@@ -1,6 +1,10 @@
 import breeze.stats.distributions._
 import breeze.stats.distributions.Rand._
 import cats.Monad
+import com.stripe.rainier.compute._
+import com.stripe.rainier.core._
+import com.stripe.rainier.sampler._
+import scala.annotation.tailrec
 
 package object probability {
   type LogLikelihood = Double
