@@ -303,7 +303,7 @@ case class Nuts(maxTreeDepth: Int) extends Sampler {
     }
 
     val init = initialiseTheta
-    val eps0 = findReasonableEpsilon(init, samplePhi, pos, gradient, pos)
+    val eps0 = findReasonableEpsilon(init, samplePhi, pos, gradient)
     println(s"initial step size $eps0")
     val initState = DualAverageState(1, init, log(eps0), 0.0, 0.0)
     val mu = log(10 * eps0)
@@ -332,13 +332,12 @@ object Nuts {
       theta: Array[Double],
       phi: Array[Double],
       pos: Array[Double] => Double,
-      gradient: Array[Double] => Array[Double],
-      ll: Array[Double] => Double): Double = {
+      gradient: Array[Double] => Array[Double]): Double = {
 
       val eps = 1.0
       val (initTheta, initPhi) = Hmc.leapfrog(eps, gradient, theta, phi)
       def prop(propTheta: Array[Double], propPhi: Array[Double]) =
-        Hmc.logAcceptance(propTheta, propPhi, theta, phi, ll)
+        Hmc.logAcceptance(propTheta, propPhi, theta, phi, pos)
       val i = prop(initTheta, initPhi) > log(0.5)
       val a = if (i) 1.0 else -1.0
 

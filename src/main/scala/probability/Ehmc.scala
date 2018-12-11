@@ -146,7 +146,7 @@ case object Ehmc extends Sampler {
 
     var i = 0
     val initTheta = initialiseTheta
-    val eps0 = Nuts.findReasonableEpsilon(initTheta, samplePhi, pos, gradient, pos)
+    val eps0 = Nuts.findReasonableEpsilon(initTheta, samplePhi, pos, gradient)
     var current = DualAverageState(1, initTheta, 0, log(eps0), 0.0, 0.0)
     // println(s"Initial step size $eps0")
     val l0 = 100
@@ -233,9 +233,10 @@ object EhmcBreeze {
     } yield next
     }
 
-  def discreteUniform(min: Int, max: Int)(implicit rng: RNG) = new Rand[Int] {
-    def draw = math.floor(rng.standardUniform * (max - min) + min).toInt
-  }
+  def discreteUniform(min: Int, max: Int) = for {
+    u <- breeze.stats.distributions.Uniform(0, 1)
+  } yield math.floor(u * (max - min) + min).toInt
+
 
   def empiricalLongestBatch(
     eps: Double,
@@ -247,5 +248,78 @@ object EhmcBreeze {
 
     MarkovChain((theta, l0))(longestBatchStep(eps, l0, m, gradient, pos)).
       steps.take(k).toVector.map(_._2)
+  }
+
+  def step(
+    l0: Int,
+    mu: Double,
+    m: DenseMatrix[Double],
+    warmupIterations: Int,
+    gradient: Array[Double] => Array[Double],
+    pos: Array[Double] => Double,
+    delta: Double = 0.65)(s: EhmcState): Rand[EhmcState] = {
+
+    for {
+      phi <- samplePhi(m)
+      eps = exp(s.logeps)
+      k = s.empiricalL.size
+      i <- discreteUniform(0, k)
+      l = s.empiricalL(i)
+
+      (t, p) = Hmc.leapfrogs(eps, gradient, l, s.theta, phi)
+
+      a = Hmc.logAcceptance(t, p, s.theta, phi, pos)
+
+      empiricalL = if (s.iter == warmupIterations) {
+        empiricalLongestBatch(exp(s.logeps),
+                              l0, m, gradient, pos)(s.theta)
+      } else {
+        Vector(l0)
+      }
+
+      (hm1, logeps1, logepsbar1) = if (s.iter < warmupIterations) {
+        val acceptProb = min(1.0, exp(a))
+        DualAverage.updateEps(s.iter, mu, delta, acceptProb)(s.hm, s.logeps, s.logepsbar)
+      } else {
+        (s.hm, s.logeps, s.logepsbar)
+      }
+
+      u <- breeze.stats.distributions.Uniform(0, 1)
+      next = if (log(u) < a) {
+        EhmcState(s.iter + 1, t, empiricalL, s.accepted + 1,
+                         logeps1, logepsbar1, hm1)
+      } else {
+        s.copy(iter = s.iter + 1, empiricalL = empiricalL, logeps = logeps1,
+               logepsbar = logepsbar1, hm = hm1)
+      }
+    } yield next
+  }
+
+  case class EhmcState(
+    iter:       Int,
+    theta:      Array[Double],
+    empiricalL: Vector[Int],
+    accepted:   Int,
+    logeps:     Double,
+    logepsbar:  Double,
+    hm:         Double)
+
+  def sample(
+    l0: Int,
+    mu: Double,
+    gradient: Array[Double] => Array[Double],
+    pos: Array[Double] => Double,
+    warmupIterations: Int,
+    initTheta: Array[Double],
+    delta: Double = 0.65): Process[EhmcState] = {
+
+    val m = DenseMatrix.eye[Double](initTheta.size)
+    val phi = samplePhi(m).draw
+    val eps0 = Nuts.findReasonableEpsilon(initTheta, phi, pos, gradient)
+    val empiricalL = Vector(l0)
+    val init = EhmcState(1, initTheta, empiricalL, 0, log(eps0), 0.0, 0.0)
+
+
+    MarkovChain(init)(step(l0, mu, m, warmupIterations, gradient, pos, delta))
   }
 }
